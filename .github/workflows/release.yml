@@ -35,25 +35,25 @@ jobs:
         run: ./gradlew build
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: NekoMaid
           path: build/libs/NekoMaid-1.0-SNAPSHOT.jar
   build-website:
     runs-on: ubuntu-latest
     steps:
-      - name: Get pnpm store directory
-        id: pnpm-store-dir
+      - name: Get npm cache directory
+        id: npm-cache-dir
         run: |
-          echo "::set-output name=dir::$(pnpm store path)"
+          echo "::set-output name=dir::$(npm config get cache)"
 
       - uses: actions/cache@v3
-        id: pnpm-cache # use this to check for `cache-hit` ==> if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
         with:
-          path: ${{ steps.pnpm-store-dir.outputs.dir }}
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-
+            ${{ runner.os }}-node-
 
       - name: Check out git repository
         uses: actions/checkout@v3
@@ -66,25 +66,19 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y mesa-utils libxi-dev libglu1-mesa-dev libglew-dev pkg-config xvfb libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev build-essential
+        run: sudo apt-get update && sudo apt-get install -y mesa-utils libxi-dev libglu1-mesa-dev libglew-dev pkg-config xvfb
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
-      - name: Install pnpm dependencies
-        run: pnpm install
-
-      - name: Rebuild canvas
-        run: pnpm rebuild canvas --build-from-source
+      - name: Install npm dependencies
+        run: npm install --legacy-peer-deps
 
       - name: Generate assets
-        run: xvfb-run --auto-servernum pnpm run gen
+        run: xvfb-run --auto-servernum npm run gen
 
       - name: Copy icons
-        run: mkdir public && pnpm run copyIcons
+        run: mkdir public && npm run copyIcons
 
       - name: Build app
-        run: pnpm run build
+        run: npm run build
 
       - name: Deploy
         uses: crazy-max/ghaction-github-pages@v3
